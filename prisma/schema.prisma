@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  phone     String   @unique
+  password  String
+  role      Role     @default(MEMBER)
+  createdAt DateTime @default(now())
+
+  memberships ChitMember[]
+  payments    Payment[]
+  bids        Bid[]
+}
+
+model ChitGroup {
+  id             Int      @id @default(autoincrement())
+  name           String
+  totalAmount    Float
+  durationMonths Int
+  monthlyAmount  Float
+  startDate      DateTime
+  status         String
+
+  members      ChitMember[]
+  installments Installment[]
+}
+
+model ChitMember {
+  id     Int @id @default(autoincrement())
+  userId Int
+  chitId Int
+
+  user User      @relation(fields: [userId], references: [id])
+  chit ChitGroup @relation(fields: [chitId], references: [id])
+}
+
+model Installment {
+  id          Int      @id @default(autoincrement())
+  chitId      Int
+  monthNumber Int
+  dueDate     DateTime
+
+  chit     ChitGroup @relation(fields: [chitId], references: [id])
+  payments Payment[]
+  bids     Bid[]
+}
+
+model Payment {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  chitId        Int
+  installmentId Int
+  amount        Float
+  status        String
+  createdAt     DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id])
+  installment Installment @relation(fields: [installmentId], references: [id])
+}
+
+model Bid {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  chitId        Int
+  installmentId Int
+  bidAmount     Float
+  createdAt     DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id])
+  installment Installment @relation(fields: [installmentId], references: [id])
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
