@@ -18,6 +18,7 @@ model User {
   memberships ChitMember[]
   payments    Payment[]
   bids        Bid[]
+  withdrawals Withdrawal[]
 }
 
 model ChitGroup {
@@ -27,19 +28,22 @@ model ChitGroup {
   durationMonths Int
   monthlyAmount  Float
   startDate      DateTime
-  status         String
+  status         String   @default("ACTIVE")
 
   members      ChitMember[]
   installments Installment[]
 }
 
 model ChitMember {
-  id     Int @id @default(autoincrement())
-  userId Int
-  chitId Int
+  id       Int @id @default(autoincrement())
+  userId   Int
+  chitId   Int
+  position Int
 
   user User      @relation(fields: [userId], references: [id])
   chit ChitGroup @relation(fields: [chitId], references: [id])
+
+  @@unique([userId, chitId])
 }
 
 model Installment {
@@ -47,6 +51,7 @@ model Installment {
   chitId      Int
   monthNumber Int
   dueDate     DateTime
+  status      String   @default("PENDING")
 
   chit     ChitGroup @relation(fields: [chitId], references: [id])
   payments Payment[]
@@ -59,11 +64,13 @@ model Payment {
   chitId        Int
   installmentId Int
   amount        Float
-  status        String
+  status        String   @default("PAID")
   createdAt     DateTime @default(now())
 
   user        User        @relation(fields: [userId], references: [id])
   installment Installment @relation(fields: [installmentId], references: [id])
+
+  @@unique([userId, installmentId]) // prevent double payment
 }
 
 model Bid {
@@ -76,9 +83,41 @@ model Bid {
 
   user        User        @relation(fields: [userId], references: [id])
   installment Installment @relation(fields: [installmentId], references: [id])
+
+  @@unique([userId, installmentId]) // one bid per user
+}
+
+model Winner {
+  id            Int      @id @default(autoincrement())
+  chitId        Int
+  installmentId Int
+  userId        Int
+  winningBid    Float
+  payoutAmount  Float
+  createdAt     DateTime @default(now())
 }
 
 enum Role {
   ADMIN
   MEMBER
+}
+
+model Ledger {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  chitId        Int
+  installmentId Int
+  amount        Float
+  type          String // CREDIT / DEBIT
+  createdAt     DateTime @default(now())
+}
+
+model Withdrawal {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  amount    Float
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
 }
